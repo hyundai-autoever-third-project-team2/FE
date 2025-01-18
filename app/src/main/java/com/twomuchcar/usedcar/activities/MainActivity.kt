@@ -1,29 +1,23 @@
 package com.twomuchcar.usedcar.activities
 
-import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.net.http.SslError
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.util.Base64
 import android.util.Log
 import android.webkit.JavascriptInterface
-import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.activity.enableEdgeToEdge
+import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.ui.setupWithNavController
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.twomuchcar.usedcar.R
 import java.io.ByteArrayOutputStream
 
@@ -32,6 +26,10 @@ class MainActivity : AppCompatActivity() {
     private val REQUEST_IMAGE_CAPTURE = 1
     private var currentCameraIndex = 0
     private lateinit var webView: WebView
+
+    private var backPressedOnce = false
+    private val handler = Handler(Looper.getMainLooper())
+    private val homePageUrl = "https://autoever.site/"
 
     // WebView와의 통신 인터페이스 클래스입니다.
     inner class WebAppInterface(private val context: Context) {
@@ -76,7 +74,33 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         setupWebView()
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (webView.canGoBack()) {
+                    if (webView.url == homePageUrl) { // 현재 페이지가 홈 화면인지 확인
+                        handleHomeBackPressed()
+                    } else {
+                        webView.goBack() // 이전 페이지로 이동
+                    }
+                } else {
+                    handleHomeBackPressed() // 더 이상 뒤로 갈 페이지가 없는 경우 처리
+                }
+            }
+        })
     }
+
+
+    private fun handleHomeBackPressed() {
+        if (backPressedOnce) {
+            finish() // 앱 종료
+        } else {
+            backPressedOnce = true
+            Toast.makeText(this, "한번 더 누르면 앱이 종료됩니다", Toast.LENGTH_SHORT).show()
+            handler.postDelayed({ backPressedOnce = false }, 2000) // 2초 후 상태 초기화
+        }
+    }
+
 
     // 웹뷰를 세팅합니다.
     private fun setupWebView() {
@@ -132,9 +156,8 @@ class MainActivity : AppCompatActivity() {
                 javaScriptCanOpenWindowsAutomatically = true
             }
 
-//            loadUrl("http://10.0.2.2:5173")
 
-            loadUrl("https://autoever.site")
+            loadUrl("https://autoever.site/login")
         }
     }
 
@@ -162,6 +185,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        handler.removeCallbacksAndMessages(null)
         webView.destroy()
         super.onDestroy()
     }
