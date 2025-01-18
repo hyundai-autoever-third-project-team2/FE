@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -18,8 +19,10 @@ import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.twomuchcar.usedcar.R
 import java.io.ByteArrayOutputStream
+import java.util.jar.Manifest
 
 class MainActivity : AppCompatActivity() {
     private val CAMERA_PERMISSION_CODE = 100
@@ -101,6 +104,47 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun fcmSetting(){
+        // 알림 허용 수락
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+        }
+
+        // FCM 토큰 발급 및 서버로 전송
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val token = task.result
+                Log.d("FCM", "Token: ${task.result}")
+                Log.d("FCM", "Token: $token") // Logcat에서 확인 가능
+                sendTokenToServer(token)
+            } else {
+                Log.e("FCM", "Token error: ${task.exception}")
+            }
+        }
+
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        val navController = navHostFragment.navController
+
+        val bottomNavigationView: BottomNavigationView = findViewById(R.id.bottom_navigation)
+        bottomNavigationView.setupWithNavController(navController)
+    }
+
+    // 서버로 FCM 토큰 전송
+    private fun sendTokenToServer(token: String) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val response = ApiClient.api.updateFcmToken(TokenRequest(token))
+                if (!response.isSuccessful) {
+                    Log.e("FCM", "Failed to send token: ${response.message()}")
+                } else {
+                    Log.d("FCM", "Token sent successfully")
+                }
+            } catch (e: Exception) {
+                Log.e("FCM", "Error sending token", e)
+            }
+        }
+    }
 
     // 웹뷰를 세팅합니다.
     private fun setupWebView() {
