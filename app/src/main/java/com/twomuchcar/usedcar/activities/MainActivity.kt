@@ -22,13 +22,9 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.ui.setupWithNavController
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.messaging.FirebaseMessaging
 import com.twomuchcar.usedcar.R
 import com.twomuchcar.usedcar.service.ApiClient
-import com.twomuchcar.usedcar.service.ApiService
 import com.twomuchcar.usedcar.service.TokenRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,7 +34,6 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.ByteArrayOutputStream
 import java.io.File
-import kotlin.math.log
 
 class MainActivity : AppCompatActivity() {
     private val CAMERA_PERMISSION_CODE = 100
@@ -104,6 +99,7 @@ class MainActivity : AppCompatActivity() {
 
         setupWebView()
         setupFCM()
+        handleIntent(getIntent());
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -120,6 +116,19 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent) // 새로 들어온 Intent 처리
+    }
+
+    private fun handleIntent(intent: Intent) {
+        intent.getStringExtra("url")?.let { targetUrl ->
+            if (targetUrl.isNotEmpty()) {
+                Log.d("MainActivity", "Loading URL from notification: $targetUrl")
+                webView.loadUrl(targetUrl) // 웹뷰에 URL 로드
+            }
+        }
+    }
 
     private fun handleHomeBackPressed() {
         if (backPressedOnce) {
