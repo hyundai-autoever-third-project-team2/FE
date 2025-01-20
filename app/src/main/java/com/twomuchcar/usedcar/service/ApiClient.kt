@@ -18,7 +18,7 @@ object ApiClient {
         })
         .addInterceptor { chain ->
             val request = chain.request().newBuilder()
-                .addHeader("Cookie", "AccessToken=eyJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6Imtha2FvIDM4ODA1NzEzODAiLCJyb2xlIjoiUk9MRV9VU0VSIiwiZW1haWwiOiJraW1ob25ndmluQG5hdmVyLmNvbSIsImlhdCI6MTczNzI3Njc2MywiZXhwIjoxNzM3MzYzMTYzfQ.pUEpJ82RAakthm9VRkasbcX-0B9vf8JMHACfQI9orWQ")
+                .addHeader("Cookie", "AccessToken=eyJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6Imtha2FvIDM4ODA1NzEzODAiLCJyb2xlIjoiUk9MRV9VU0VSIiwiZW1haWwiOiJraW1ob25ndmluQG5hdmVyLmNvbSIsImlhdCI6MTczNzM2OTM1MCwiZXhwIjoxNzM3NDU1NzUwfQ.bjTDf62wnlyY02aFQjYytNqqHzvx8bZsjp_eXX80ogo")
                 .build()
             chain.proceed(request)
         }
@@ -30,8 +30,8 @@ object ApiClient {
     private val retrofit = Retrofit.Builder()
         .baseUrl(BASE_URL)
         .client(client)
-        .addConverterFactory(GsonConverterFactory.create())
         .addConverterFactory(ScalarsConverterFactory.create())
+        .addConverterFactory(GsonConverterFactory.create())
         .build()
 
     val api: ApiService = retrofit.create(ApiService::class.java)
