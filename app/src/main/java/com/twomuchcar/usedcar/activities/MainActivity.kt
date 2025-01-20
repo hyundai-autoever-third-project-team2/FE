@@ -173,6 +173,52 @@ class MainActivity : AppCompatActivity() {
         webView = findViewById(R.id.webView)
         webView.apply {
             webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                    if (url == null) return false
+
+                    try {
+                        // intent:// 스킴 처리
+                        if (url.startsWith("intent://")) {
+                            val intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
+                            if (intent.getPackage() != null) {
+                                val existPackage = packageManager.getLaunchIntentForPackage(intent.getPackage()!!)
+                                if (existPackage != null) {
+                                    startActivity(intent)
+                                    return true
+                                } else {
+                                    val marketIntent = Intent(Intent.ACTION_VIEW)
+                                    marketIntent.data = Uri.parse("market://details?id=${intent.getPackage()}")
+                                    startActivity(marketIntent)
+                                    return true
+                                }
+                            }
+                        }
+
+                        // 특수 스킴 처리
+                        when {
+                            url.startsWith("market://") -> {
+                                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                return true
+                            }
+                            url.startsWith("tel:") -> {
+                                startActivity(Intent(Intent.ACTION_DIAL, Uri.parse(url)))
+                                return true
+                            }
+                        }
+
+                        // 모든 http/https URL은 웹뷰에서 처리
+                        if (url.startsWith("http://") || url.startsWith("https://")) {
+                            view?.loadUrl(url)
+                            return true
+                        }
+
+                        return false
+                    } catch (e: Exception) {
+                        Log.e("WebView", "URL 처리 중 오류 발생", e)
+                        return false
+                    }
+                }
+
                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                     super.onPageStarted(view, url, favicon)
                     Log.d("WebView", "페이지 로딩 시작: $url")
