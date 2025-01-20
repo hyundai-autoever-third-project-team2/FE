@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "489286096499",
+    "project_id": "carstore-d56d2",
+    "storage_bucket": "carstore-d56d2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:489286096499:android:8d37a67419f8d71c687c06",
+        "android_client_info": {
+          "package_name": "com.twomuchcar.usedcar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_H0yZYjvHbMFb54P1rw4rMII-VeSL1N8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

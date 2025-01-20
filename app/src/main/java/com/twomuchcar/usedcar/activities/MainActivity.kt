@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -27,14 +28,22 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.messaging.FirebaseMessaging
 import com.twomuchcar.usedcar.R
 import com.twomuchcar.usedcar.service.ApiClient
+import com.twomuchcar.usedcar.service.ApiService
 import com.twomuchcar.usedcar.service.TokenRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.ByteArrayOutputStream
+import java.io.File
+import kotlin.math.log
 
 class MainActivity : AppCompatActivity() {
     private val CAMERA_PERMISSION_CODE = 100
     private val REQUEST_IMAGE_CAPTURE = 1
+    private val PICK_IMAGE_REQUEST = 486
     private var currentCameraIndex = 0
     private lateinit var webView: WebView
 
@@ -55,6 +64,15 @@ class MainActivity : AppCompatActivity() {
                     arrayOf(android.Manifest.permission.CAMERA),
                     CAMERA_PERMISSION_CODE
                 )
+            }
+        }
+
+        @JavascriptInterface
+        fun openGallery() {
+            runOnUiThread {
+                val intent = Intent(Intent.ACTION_PICK)
+                intent.type = "image/*"
+                startActivityForResult(intent, PICK_IMAGE_REQUEST)
             }
         }
     }
@@ -228,6 +246,54 @@ class MainActivity : AppCompatActivity() {
                 webView.loadUrl(javascriptString)
             }
         }
+        else if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK) {
+            val imageUri = data?.data
+            imageUri?.let { uri ->
+                // S3에 이미지 업로드
+                uploadImageToS3(uri)
+            }
+        }
+    }
+    private fun uploadImageToS3(imageUri: Uri) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val imageFile = getFileFromUri(imageUri)
+                val requestFile = imageFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
+                val body = MultipartBody.Part.createFormData("image", imageFile.name, requestFile)
+
+                // ResponseBody에서 문자열 추출
+                val response = ApiClient.api.uploadImage(body)
+                val imageUrl = response.toString().trim()  // 응답 본문을 문자열로 변환
+
+                Log.d("Upload", "Raw response: $imageUrl")
+
+                withContext(Dispatchers.Main) {
+                    webView.evaluateJavascript(
+                        "window.receiveImageFromGallery('$imageUrl')",
+                        null
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("Upload", "Error during upload", e)
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    webView.evaluateJavascript(
+                        "console.error('Image upload failed: ${e.message}')",
+                        null
+                    )
+                }
+            }
+        }
+    }
+    private fun getFileFromUri(uri: Uri): File {
+        val inputStream = contentResolver.openInputStream(uri)
+        val file = File(cacheDir, "temp_image_${System.currentTimeMillis()}.jpg")
+        inputStream.use { input ->
+            file.outputStream().use { output ->
+                input?.copyTo(output)
+            }
+        }
+        return file
     }
 
     override fun onDestroy() {
@@ -235,5 +301,7 @@ class MainActivity : AppCompatActivity() {
         webView.destroy()
         super.onDestroy()
     }
+
+
 
 }
